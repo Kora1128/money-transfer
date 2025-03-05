@@ -69,3 +69,47 @@ Response Body
 ```
 {"status":"transfer successful"}
 ```
+
+
+## Locking Strategy and Implementations
+
+1. Grained Lock on Individual Accounts during Transfer
+    - Instead of using a global lock on all transfers , we lock the two accounts involved in a transfer.
+    - This improves concurrency cuz we can allow multiple transfers happening at the same time.
+
+2. Implemented Ordered Locking to prevent deadlock
+    - When two users send money to each other at same time, it may lock in different orders causing deadlock. So to avoid that we compare user_ids and do a ordered lock.
+
+3. RWMutex during Concurrent Reads
+    - `Get account balance` would be used in different places including exposing in a API and also during transfer to fetch the current balance. So implemented read-only lock so that multiple goroutines can read them concurrently.
+
+
+## Sample Curls for testing
+
+Account Create
+```
+curl --location 'http://localhost:8080/account/create' \
+--header 'Content-Type: application/json' \
+--data '{
+    "user_id" : "kora",
+    "balance": 50
+}'
+```
+
+Get account Balance
+```
+curl --location 'http://localhost:8080/account/balance?user_id=kora' \
+--data ''
+```
+
+Transfer money
+
+```
+curl --location 'http://localhost:8080/transfer' \
+--header 'Content-Type: application/json' \
+--data '{
+    "from_user_id" : "kora",
+    "to_user_id" : "kowshik",
+    "amount": 50
+}'
+```
