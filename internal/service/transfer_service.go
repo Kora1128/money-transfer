@@ -3,12 +3,10 @@ package service
 import (
 	"errors"
 	"money-transfer/internal/repository"
-	"sync"
 )
 
 type TransferService struct {
 	repo *repository.AccountRepository
-	mu   sync.Mutex
 }
 
 func NewTransferService(repo *repository.AccountRepository) *TransferService {
@@ -19,9 +17,6 @@ func NewTransferService(repo *repository.AccountRepository) *TransferService {
 
 func (ts *TransferService) Transfer(fromUserId, toUserId string, amount float64) error {
 
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-
 	fromAccount, err := ts.repo.GetAccount(fromUserId)
 	if err != nil {
 		return err
@@ -31,6 +26,17 @@ func (ts *TransferService) Transfer(fromUserId, toUserId string, amount float64)
 	if err != nil {
 		return err
 	}
+
+	// To Prevent Deadlock
+	firstLock, secondLock := fromAccount, toAccount
+	if firstLock.UserId > secondLock.UserId {
+		firstLock, secondLock = secondLock, firstLock
+	}
+
+	firstLock.Mutex.Lock()
+	secondLock.Mutex.Lock()
+	defer firstLock.Mutex.Unlock()
+	defer secondLock.Mutex.Unlock()
 
 	if fromUserId == toUserId {
 		return errors.New("self transfer is not allowed")
