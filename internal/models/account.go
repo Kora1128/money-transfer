@@ -15,15 +15,10 @@ func (a *Account) GetBalance() float64 {
 }
 
 func (a *Account) Deposit(amount float64) {
-	a.Mutex.Lock()
-	defer a.Mutex.Unlock()
 	a.Balance += amount
 }
 
 func (a *Account) Withdraw(amount float64) bool {
-	a.Mutex.Lock()
-	defer a.Mutex.Unlock()
-
 	if amount > a.Balance {
 		return false
 	}
